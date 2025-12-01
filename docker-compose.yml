@@ -195,6 +195,33 @@ services:
       - app-network
     restart: unless-stopped
 
+  # Reports Service
+  reports-service:
+    build:
+      context: ./services/reports-service
+      dockerfile: Dockerfile
+    container_name: reports-service
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${REPORTS_SERVICE_DB_USER:-reports_service}
+      DB_PASSWORD: ${REPORTS_SERVICE_DB_PASSWORD:-reports_service_pass}
+      DB_NAME: ${REPORTS_SERVICE_DB_NAME:-reports_service_db}
+      REPORT_STORAGE_PATH: /data/reports
+      REPORT_STORAGE_BASE_URL: https://files.example.com/reports/
+      ENV: ${ENV:-local}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "8008:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - reports_data:/data/reports
+    networks:
+      - app-network
+    restart: unless-stopped
+
   # Nginx (API Gateway / Reverse Proxy)
   # nginx:
   #   image: nginx:alpine
@@ -215,4 +242,5 @@ networks:
 
 volumes:
   postgres_data:
+  reports_data:
 

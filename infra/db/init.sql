@@ -144,3 +144,23 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'schedule_service_db')
 -- Grant privileges
 GRANT ALL PRIVILEGES ON DATABASE schedule_service_db TO schedule_service;
 
+-- Create user for reports service
+DO
+$do$
+BEGIN
+   IF NOT EXISTS (
+      SELECT FROM pg_catalog.pg_roles
+      WHERE  rolname = 'reports_service') THEN
+      
+      CREATE ROLE reports_service LOGIN PASSWORD 'reports_service_pass123';
+   END IF;
+END
+$do$;
+
+-- Create database for reports service
+SELECT 'CREATE DATABASE reports_service_db OWNER reports_service'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'reports_service_db')\gexec
+
+-- Grant privileges
+GRANT ALL PRIVILEGES ON DATABASE reports_service_db TO reports_service;
+

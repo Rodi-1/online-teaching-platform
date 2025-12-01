@@ -1,74 +1,84 @@
 ````markdown
-# Микросервис «Расписание» – техническое задание
+# Микросервис «Отчёт» – техническое задание
 
-Этот документ описывает, **что нужно реализовать** в микросервисе «Расписание» для онлайн-платформы обучения.
+Этот документ описывает, **что нужно реализовать** в микросервисе «Отчёт» в рамках онлайн-платформы обучения.
 
 Микросервис отвечает за:
 
-- хранение и управление **занятиями (уроками)** в рамках курсов;
-- выдачу **расписания** для конкретного пользователя (ученика/преподавателя);
-- выдачу **расписания по курсу**;
-- фиксацию и просмотр **посещаемости** по занятию.
+- запуск **длительных операций генерации отчётов**;
+- хранение метаданных операций (статус, прогресс, ошибки);
+- хранение **готовых отчётов** (метаданные + ссылка на файл);
+- выдачу **списка отчётов**, информации по одному отчёту;
+- получение **ссылки для скачивания**;
+- **перегенерацию** отчёта с теми же параметрами.
 
 **Не отвечает** за:
 
-- создание курсов и управление составом групп (это отдельный сервис «Курс» или «Каталог курсов»);
-- оценивание (это «Электронный журнал» и сервисы «Домашнее задание» / «Тест»);
-- уведомления об изменении расписания (это сервис «Уведомления»).
+- непосредственный рендер PDF/XLSX (может делаться заглушкой или отдельной библиотекой внутри сервиса);
+- визуализацию отчётов в интерфейсе (это фронтенд);
+- расчёт бизнес-логики оценок (это делает «Электронный журнал» и другие сервисы, отчёт их только агрегирует).
 
 ---
 
 ## 1. Общие требования и стек
 
 **Язык:** Python  
-**Фреймворк:** FastAPI (для единообразия с остальными сервисами)
+**Фреймворк:** FastAPI (как и у остальных микросервисов)
 
 Рекомендуемые библиотеки:
 
 - `fastapi` – HTTP API;
 - `uvicorn` – ASGI-сервер;
 - `pydantic` – схемы запросов/ответов;
-- `sqlalchemy` – ORM для PostgreSQL;
+- `sqlalchemy` – ORM (PostgreSQL);
 - `alembic` – миграции (желательно);
-- стандартный `logging` – логирование.
+- стандартный `logging`.
+
+Форматы отчётов (минимум):
+
+- `type`:  
+  - `course_performance` – успеваемость по курсу;  
+  - `student_progress` – прогресс конкретного ученика;  
+  - `attendance` – посещаемость.
+- `format`: `pdf`, `xlsx` (минимум один можно реализовать как заглушку).
 
 ---
 
 ## 2. Структура директорий микросервиса
 
-Папка: `services/schedule-service`
+Папка: `services/reports-service`
 
 ```text
-schedule-service/
+reports-service/
 ├── app/
 │   ├── __init__.py
-│   ├── main.py                   # точка входа FastAPI
+│   ├── main.py                    # точка входа FastAPI
 │   ├── api/
 │   │   ├── __init__.py
 │   │   └── v1/
 │   │       ├── __init__.py
-│   │       └── schedule.py       # все HTTP-эндпоинты сервиса «Расписание»
+│   │       └── reports.py         # HTTP-эндпоинты сервиса «Отчёт»
 │   ├── core/
 │   │   ├── __init__.py
-│   │   └── config.py             # конфиг (DB_HOST и пр.)
+│   │   └── config.py              # конфиг (DB_HOST, и т.п.)
 │   ├── db/
 │   │   ├── __init__.py
-│   │   ├── session.py            # engine + SessionLocal
-│   │   └── migrations/           # alembic (миграции схемы)
+│   │   ├── session.py             # engine + SessionLocal
+│   │   └── migrations/            # alembic-миграции
 │   ├── models/
 │   │   ├── __init__.py
-│   │   ├── db_models.py          # ORM-модели (Lesson, LessonAttendance)
-│   │   └── schemas.py            # Pydantic-схемы (LessonCreate, LessonOut и т.д.)
+│   │   ├── db_models.py           # ORM-модели (Report, ReportOperation)
+│   │   └── schemas.py             # Pydantic-схемы
 │   ├── repositories/
 │   │   ├── __init__.py
-│   │   └── schedule_repo.py      # доступ к данным расписания и посещаемости
+│   │   └── reports_repo.py        # работа с БД
 │   └── services/
 │       ├── __init__.py
-│       └── schedule_service.py   # бизнес-логика
+│       └── reports_service.py     # бизнес-логика (операции + генерация)
 │
 ├── tests/
 │   ├── __init__.py
-│   └── test_api_schedule.py
+│   └── test_api_reports.py
 │
 ├── Dockerfile
 ├── requirements.txt
@@ -86,188 +96,170 @@ schedule-service/
 * `DB_HOST` – хост PostgreSQL;
 * `DB_PORT` – порт PostgreSQL;
 * `DB_USER` – пользователь БД;
-* `DB_PASSWORD` – пароль пользователя БД;
-* `DB_NAME` – имя базы;
-* `ENV` – окружение (`local` / `dev` / `prod`).
+* `DB_PASSWORD` – пароль БД;
+* `DB_NAME` – имя базы/схемы для отчётов;
+* `ENV` – `local` / `dev` / `prod`.
 
 Желательно:
 
-* `LOG_LEVEL` – уровень логов.
+* `LOG_LEVEL`;
+* `REPORT_STORAGE_BASE_URL` – базовый URL, по которому фронтенд будет скачивать файлы (например, `https://files.example.com/reports/`);
+* `REPORT_STORAGE_PATH` – локальный путь в контейнере для сохранения отчётных файлов (например, `/data/reports`).
 
-`db/session.py` должен:
+`db/session.py`:
 
-* создавать `SQLAlchemy` engine на основе этих переменных;
-* предоставлять `SessionLocal` (sessionmaker), который используется в репозиториях.
+* создаёт `SQLAlchemy` engine;
+* предоставляет `SessionLocal` (sessionmaker).
 
 ---
 
 ## 4. Модель данных (БД)
 
-### 4.1. Таблица `lessons` (занятия)
+### 4.1. Таблица `report_operations` (операции генерации)
 
-Хранит информацию о каждом занятии курса.
+Описывает **длительную операцию** генерации отчёта.
 
 Поля:
 
-* `id` – UUID, PK;
-* `course_id` – UUID, идентификатор курса;
-* `title` – строка, тема занятия;
-* `description` – строка, краткое описание (nullable);
-* `start_at` – datetime, дата и время начала (UTC);
-* `end_at` – datetime, дата и время окончания (UTC);
-* `location_type` – строка: `"online"` или `"offline"`;
-* `room` – строка, аудитория (для офлайн-занятий, nullable);
-* `online_link` – строка, ссылка на онлайн-конференцию (для онлайн-занятий, nullable);
-* `status` – строка: `scheduled`, `cancelled`, `finished`;
+* `id` – UUID, PK (`operation_id`);
+* `status` – строка:
+
+  * `pending` – ожидает выполнения;
+  * `in_progress` – идёт генерация;
+  * `completed` – завершена успешно;
+  * `failed` – завершилась с ошибкой.
+* `type` – тип отчёта (`course_performance`, `student_progress`, `attendance`, …);
+* `format` – формат (`pdf`, `xlsx`, …);
+* `requested_by` – строка/UUID (id пользователя или сервиса, запросившего отчёт);
+* `requested_at` – datetime;
+* `started_at` – datetime, nullable;
+* `finished_at` – datetime, nullable;
+* `progress_percent` – int (0–100, nullable);
+* `report_id` – FK → `reports.id`, nullable (заполняется после успешной генерации);
+* `error_message` – строка, nullable (описание ошибки при `failed`);
+* `filters_json` – JSON / text (сырые фильтры, чтобы не дублировать поля).
+
+Индексы:
+
+* по `requested_by`;
+* по `status`.
+
+### 4.2. Таблица `reports` (готовые отчёты)
+
+Хранит метаданные уже сгенерированных отчётов.
+
+Поля:
+
+* `id` – UUID, PK (`report_id`);
+* `type` – строка (как выше);
+* `format` – строка (`pdf`, `xlsx`);
+* `status` – строка: `completed`, `failed`, `expired` (минимум – `completed`, `failed`);
+* `created_by` – строка/UUID (кто запросил отчёт);
 * `created_at` – datetime;
-* `updated_at` – datetime.
+* `ready_at` – datetime, nullable;
+* `filters_json` – JSON / text (структура фильтров: course_id, student_id, from/to и т.д.);
+* `file_path` – строка, путь к файлу в файловой системе (например, `/data/reports/rep-xxx.xlsx`);
+* `download_url` – строка, публичная ссылка (может формироваться на основе `REPORT_STORAGE_BASE_URL`);
+* `size_bytes` – int, nullable (размер файла в байтах).
 
 Индексы:
 
-* по `course_id`;
-* по `start_at`;
-* по `(course_id, start_at)`.
-
-### 4.2. Таблица `lesson_attendance` (посещаемость)
-
-Хранит отметки посещаемости учеников по каждому занятию.
-
-Поля:
-
-* `id` – UUID, PK;
-* `lesson_id` – FK → lessons.id;
-* `student_id` – UUID, идентификатор ученика (из сервиса «Пользователь»);
-* `status` – строка: `present` (присутствовал), `absent` (отсутствовал), `late` (опоздал);
-* `comment` – строка, комментарий преподавателя (nullable);
-* `marked_at` – datetime, когда была поставлена отметка.
-
-Индексы:
-
-* по `(lesson_id, student_id)` – уникальный (одна строка на ученика и занятие);
-* по `lesson_id`.
+* по `created_by`;
+* по `type`;
+* по `created_at`.
 
 ---
 
 ## 5. Pydantic-схемы
 
-В `models/schemas.py` описать схемы запросов/ответов.
+В `models/schemas.py` описать основные модели.
 
-### 5.1. Занятия (расписание)
+### 5.1. Запуск генерации отчёта
 
-`LessonCreate` – создание занятия:
-
-```json
-{
-  "title": "Функции. Введение",
-  "description": "Обсуждаем базовые определения и примеры функций.",
-  "start_at": "2025-02-21T16:00:00Z",
-  "end_at": "2025-02-21T16:45:00Z",
-  "location_type": "online",
-  "room": null,
-  "online_link": "https://meet.example.com/course123_lesson1"
-}
-```
-
-`LessonUpdate` – частичное обновление (все поля опциональны):
+`ReportGenerateFilters` – вложенный объект фильтров:
 
 ```json
 {
-  "start_at": "2025-02-21T17:00:00Z",
-  "end_at": "2025-02-21T17:45:00Z",
-  "location_type": "offline",
-  "room": "Кабинет 302",
-  "online_link": null,
-  "status": "scheduled"
+  "course_id": "UUID (опционально)",
+  "student_id": "UUID (опционально)",
+  "from": "2025-02-01T00:00:00Z",
+  "to": "2025-02-28T23:59:59Z"
 }
 ```
 
-`LessonOut` – выдача занятия наружу:
+`ReportGenerateRequest`:
+
+```json
+{
+  "type": "course_performance",
+  "format": "xlsx",
+  "filters": {
+    "course_id": "UUID",
+    "from": "2025-02-01T00:00:00Z",
+    "to": "2025-02-28T23:59:59Z"
+  }
+}
+```
+
+`ReportOperationOut` (для ответа при запуске и при запросе статуса):
+
+```json
+{
+  "operation_id": "UUID",
+  "status": "pending",
+  "type": "course_performance",
+  "format": "xlsx",
+  "requested_by": "user-123",
+  "requested_at": "2025-03-01T09:00:00Z",
+  "started_at": null,
+  "finished_at": null,
+  "progress_percent": 0,
+  "report_id": null,
+  "error_message": null
+}
+```
+
+### 5.2. Описание отчёта
+
+`ReportOut`:
 
 ```json
 {
   "id": "UUID",
-  "course_id": "UUID",
-  "title": "Функции. Введение",
-  "description": "Обсуждаем базовые определения и примеры функций.",
-  "start_at": "2025-02-21T17:00:00Z",
-  "end_at": "2025-02-21T17:45:00Z",
-  "location_type": "offline",
-  "room": "Кабинет 302",
-  "online_link": null,
-  "status": "scheduled",
-  "created_at": "2025-02-18T12:00:00Z",
-  "updated_at": "2025-02-19T09:30:00Z"
+  "type": "course_performance",
+  "format": "xlsx",
+  "status": "completed",
+  "created_by": "user-123",
+  "created_at": "2025-03-01T09:00:05Z",
+  "ready_at": "2025-03-01T09:01:20Z",
+  "filters": {
+    "course_id": "UUID",
+    "from": "2025-02-01T00:00:00Z",
+    "to": "2025-02-28T23:59:59Z"
+  },
+  "download_url": "https://files.example.com/reports/rep-81c2f4b9.xlsx",
+  "size_bytes": 24576
 }
 ```
 
-`ScheduleItemMe` – элемент расписания текущего пользователя:
+`ReportsListResponse`:
 
 ```json
 {
-  "lesson_id": "UUID",
-  "course_id": "UUID",
-  "course_title": "Алгебра, 10 класс",
-  "title": "Функции. Введение",
-  "start_at": "2025-02-21T17:00:00Z",
-  "end_at": "2025-02-21T17:45:00Z",
-  "location_type": "offline",
-  "room": "Кабинет 302",
-  "online_link": null,
-  "role": "student",
-  "status": "scheduled"
-}
-```
-
-`ScheduleResponse`:
-
-```json
-{
-  "items": [ /* массив ScheduleItemMe */ ],
-  "total": 2,
+  "items": [ /* массив ReportOut (без лишних полей, по желанию) */ ],
+  "total": 10,
   "offset": 0,
-  "count": 50
+  "count": 20
 }
 ```
 
-### 5.2. Посещаемость
-
-`AttendanceItemUpdate` – элемент при отметке посещаемости:
+`ReportDownloadLink`:
 
 ```json
 {
-  "student_id": "UUID",
-  "status": "present",
-  "comment": null
-}
-```
-
-`AttendanceSetRequest`:
-
-```json
-{
-  "items": [ /* массив AttendanceItemUpdate */ ]
-}
-```
-
-`AttendanceItemOut`:
-
-```json
-{
-  "student_id": "UUID",
-  "student_name": "Иванов Иван",
-  "status": "present",
-  "comment": null
-}
-```
-
-`AttendanceResponse`:
-
-```json
-{
-  "lesson_id": "UUID",
-  "course_id": "UUID",
-  "lesson_title": "Функции. Введение",
-  "items": [ /* массив AttendanceItemOut */ ]
+  "report_id": "UUID",
+  "download_url": "https://files.example.com/reports/rep-81c2f4b9.xlsx?token=abc123",
+  "expires_at": "2025-03-01T12:00:00Z"
 }
 ```
 
@@ -275,198 +267,180 @@ schedule-service/
 
 ## 6. Репозиторий и сервис
 
-### 6.1. `schedule_repo.py`
+### 6.1. `reports_repo.py`
 
 Примерный набор функций:
 
-* `create_lesson(course_id, data: LessonCreate) -> Lesson`;
-* `get_lesson(lesson_id) -> Lesson | None`;
-* `update_lesson(lesson_id, data: LessonUpdate) -> Lesson`;
-* `list_lessons_for_user(user_id, role, date_from, date_to, offset, count)`
-  (объединяет занятия по всем курсам пользователя, связь курс–пользователь можно пока считать внешней или сделать заглушкой);
-* `list_lessons_for_course(course_id, date_from, date_to) -> list[Lesson]`;
-* `set_attendance(lesson_id, items: list[AttendanceItemUpdate]) -> list[LessonAttendance]`;
-* `get_attendance(lesson_id) -> list[LessonAttendance]`.
+* операции:
 
-### 6.2. `schedule_service.py`
+  * `create_operation(type, format, filters_json, requested_by) -> ReportOperation`;
+  * `set_operation_started(operation_id) -> ReportOperation`;
+  * `set_operation_progress(operation_id, progress_percent) -> ReportOperation`;
+  * `set_operation_completed(operation_id, report_id) -> ReportOperation`;
+  * `set_operation_failed(operation_id, error_message) -> ReportOperation`;
+  * `get_operation(operation_id) -> ReportOperation | None`;
+
+* отчёты:
+
+  * `create_report(type, format, filters_json, created_by, file_path, download_url, size_bytes) -> Report`;
+  * `get_report(report_id) -> Report | None`;
+  * `list_reports(filters, offset, count) -> (list[Report], total)`
+    (фильтры: type, format, status, created_by, from, to).
+
+### 6.2. `reports_service.py`
 
 Основная логика:
 
-* проверка прав по ролям:
+* `start_generation(request: ReportGenerateRequest, requested_by)`:
 
-  * создавать/редактировать занятия может только `teacher` / `admin`;
-  * отмечать посещаемость – только преподаватель курса;
-* валидация дат:
+  * создать запись в `report_operations` со статусом `pending`;
 
-  * `end_at` > `start_at`;
-* при `list_lessons_for_user`:
+  * **минимальный вариант:** сразу в том же процессе:
 
-  * фильтрация по интервалу `from` / `to`;
-  * сортировка по `start_at`;
-* при отметке посещаемости:
+    * пометить `in_progress`;
+    * сгенерировать отчёт (заглушкой – создать файл с минимальным содержимым);
+    * создать запись в таблице `reports`;
+    * пометить операцию как `completed` с привязкой к `report_id`;
 
-  * обновлять существующие строки или создавать новые;
-  * ставить `marked_at = now()`.
+  * вернуть `operation_id`.
+
+  > Важно: даже если генерация выполняется синхронно, API остаётся «длительным» — клиент всегда работает через `operation_id` и статус.
+
+* `get_operation_status(operation_id)` – возвращает `ReportOperationOut`.
+
+* `regenerate_report(report_id, requested_by)`:
+
+  * загрузить старый отчёт;
+  * взять `type`, `format`, `filters_json`;
+  * создать новую операцию с этими параметрами (как в `start_generation`);
+  * запустить генерацию (так же, как выше);
+  * вернуть `operation_id`.
+
+* вспомогательные:
+
+  * генерация физического файла отчёта;
+  * построение `download_url` из `file_path` и `REPORT_STORAGE_BASE_URL`.
 
 ---
 
 ## 7. REST API эндпоинты
 
-Все пути ниже — относительно префикса `/api`.
+Все пути далее указаны относительно префикса `/api`.
 
-### 7.1. Добавление занятия в расписание курса
+### 7.1. Запуск генерации отчёта (длительная операция)
 
-**Path:** `POST /api/courses/{course_id}/lessons`
-**Авторизация:** требуется (`teacher` / `admin`)
+**Path:** `POST /api/reports:generate`
+**Авторизация:** требуется (роль `teacher` или `admin`, можно добавить `manager`)
 
-**Параметры пути:**
+**Тело запроса:** `ReportGenerateRequest`.
 
-* `course_id` – UUID, идентификатор курса.
+Пример:
 
-**Тело запроса:** `LessonCreate`.
+```json
+{
+  "type": "course_performance",
+  "format": "xlsx",
+  "filters": {
+    "course_id": "UUID",
+    "from": "2025-02-01T00:00:00Z",
+    "to": "2025-02-28T23:59:59Z"
+  }
+}
+```
 
-Логика:
+**Ответ 200/202:** `ReportOperationOut` (минимальный набор полей):
 
-* проверить, что вызывающий пользователь является преподавателем этого курса (минимум – роль `teacher`);
-* создать запись в `lessons`.
-
-**Ответ 201:** `LessonOut`.
-
----
-
-### 7.2. Изменение занятия (перенос / изменение параметров)
-
-**Path:** `PATCH /api/lessons/{lesson_id}`
-**Авторизация:** `teacher` / `admin`
-
-**Параметры пути:**
-
-* `lesson_id` – UUID.
-
-**Тело запроса:** `LessonUpdate` (все поля опциональны).
-
-Логика:
-
-* получить занятие;
-* обновить только переданные поля;
-* не разрешать изменение уже `finished` (по желанию).
-
-**Ответ 200:** `LessonOut`.
+```json
+{
+  "operation_id": "UUID",
+  "status": "pending",
+  "type": "course_performance",
+  "format": "xlsx",
+  "requested_by": "teacher-42",
+  "requested_at": "2025-03-01T09:00:00Z"
+}
+```
 
 ---
 
-### 7.3. Получение расписания текущего пользователя
+### 7.2. Получение статуса операции генерации
 
-**Path:** `GET /api/schedule/me`
-**Авторизация:** требуется (любой авторизованный пользователь)
+**Path:** `GET /api/reports/operations/{operation_id}`
+**Авторизация:** требуется (владелец операции или админ)
 
-**Query-параметры:**
+**Параметры пути:**
 
-* `from` – datetime, начало интервала (опционально);
-* `to` – datetime, конец интервала (опционально);
+* `operation_id` – UUID.
+
+**Ответ 200:** `ReportOperationOut`.
+
+---
+
+### 7.3. Получение списка сгенерированных отчётов
+
+**Path:** `GET /api/reports`
+**Авторизация:** требуется (роль `teacher` / `admin`; можно фильтровать по `created_by`)
+
+**Query-параметры (фильтры):**
+
+* `type` – тип отчёта (опционально);
+* `format` – формат (опционально);
+* `status` – `completed` / `failed` / `all` (по умолчанию `completed`);
+* `from` – дата-время начала периода по `created_at`;
+* `to` – дата-время конца периода;
 * `offset` – int, по умолчанию 0;
-* `count` – int, по умолчанию 50.
+* `count` – int, по умолчанию 20.
 
-Логика:
-
-* получить `user_id` и `role` из JWT;
-* выбрать занятия:
-
-  * если `student` – по курсам, в которых он записан;
-  * если `teacher` – по курсам, которые он ведёт;
-* вернуть массив `ScheduleItemMe`.
-
-**Ответ 200:** `ScheduleResponse`.
+**Ответ 200:** `ReportsListResponse`.
 
 ---
 
-### 7.4. Получение расписания по курсу
+### 7.4. Получение информации о конкретном отчёте
 
-**Path:** `GET /api/courses/{course_id}/schedule`
-**Авторизация:** `teacher` / `admin` (можно разрешить student, если курс публичный – на усмотрение)
+**Path:** `GET /api/reports/{report_id}`
+**Авторизация:** требуется (создатель или админ)
 
 **Параметры пути:**
 
-* `course_id` – UUID.
+* `report_id` – UUID.
 
-**Query-параметры:**
-
-* `from`, `to` – интервал (опционально).
-
-Логика:
-
-* выбрать все занятия курса в интервале;
-* вернуть список `LessonOut` или упрощённых объектов.
-
-**Ответ 200:**
-
-```json
-{
-  "course_id": "UUID",
-  "course_title": "Алгебра, 10 класс",
-  "items": [ /* массив LessonOut или сокращённых объектов */ ]
-}
-```
+**Ответ 200:** `ReportOut`.
 
 ---
 
-### 7.5. Отметка посещаемости по занятию
+### 7.5. Получение ссылки для скачивания отчёта
 
-**Path:** `POST /api/lessons/{lesson_id}/attendance`
-**Авторизация:** `teacher` / `admin`
+> В учебном варианте можно не отдавать сам бинарный файл, а вернуть JSON с URL и временем истечения.
+
+**Path:** `GET /api/reports/{report_id}/download`
+**Авторизация:** требуется
 
 **Параметры пути:**
 
-* `lesson_id` – UUID.
+* `report_id` – UUID.
 
-**Тело запроса:** `AttendanceSetRequest`.
-
-Логика:
-
-* убедиться, что вызывающий – преподаватель курса (или админ);
-* для каждого `student_id`:
-
-  * создать или обновить запись в `lesson_attendance`;
-  * проставить `marked_at = now()`.
-
-**Ответ 200:** объект с `lesson_id`, списком итоговых записей и временем обновления:
-
-```json
-{
-  "lesson_id": "UUID",
-  "items": [
-    {
-      "student_id": "UUID",
-      "status": "present",
-      "comment": null,
-      "marked_at": "2025-02-21T17:50:00Z"
-    }
-  ],
-  "updated_at": "2025-02-21T17:50:00Z"
-}
-```
+**Ответ 200:** `ReportDownloadLink`.
 
 ---
 
-### 7.6. Получение посещаемости по занятию
+### 7.6. Перегенерация отчёта
 
-**Path:** `GET /api/lessons/{lesson_id}/attendance`
-**Авторизация:**
-
-* `teacher` / `admin` – видит всех;
-* `student` – может видеть только свою строку (либо всех по политике платформы).
+**Path:** `POST /api/reports/{report_id}:regenerate`
+**Авторизация:** требуется (создатель или админ)
 
 **Параметры пути:**
 
-* `lesson_id` – UUID.
+* `report_id` – UUID.
 
-**Ответ 200:** `AttendanceResponse` (см. выше).
+**Тело запроса:** можно оставить пустым (`{}`) – все параметры берутся из исходного отчёта.
+
+**Ответ 200/202:** `ReportOperationOut` (аналогично запуску новой операции).
 
 ---
 
 ## 8. Обработка ошибок
 
-Формат ошибок общий:
+Единый формат:
 
 ```json
 {
@@ -476,18 +450,18 @@ schedule-service/
 
 Основные коды:
 
-* 400 – некорректные данные (например, `end_at` ≤ `start_at`);
-* 401 – пользователь не авторизован (нет/невалидный токен);
-* 403 – нет прав (например, студент пытается изменить занятие);
-* 404 – занятие или посещаемость не найдены;
-* 409 – конфликт (например, попытка создать занятие с пересечением по времени, если такое правило вводится);
-* 500 – внутренняя ошибка сервера.
+* `400 Bad Request` – некорректные данные (`type`/`format` неизвестны, фильтры невалидны);
+* `401 Unauthorized` – нет или неверный токен;
+* `403 Forbidden` – пользователь не имеет права на запрос или просмотр отчёта;
+* `404 Not Found` – операция или отчёт не найдены;
+* `409 Conflict` – (опционально) если уже идёт генерация такого же отчёта и запрещено дублировать;
+* `500 Internal Server Error` – внутренняя ошибка.
 
 ---
 
 ## 9. Dockerfile
 
-Использовать такой же подход, как в остальных микросервисах:
+Стандартный для всех микросервисов:
 
 ```dockerfile
 FROM python:3.11-slim
@@ -504,57 +478,70 @@ ENV PYTHONUNBUFFERED=1
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-В `docker-compose.yml`:
+Фрагмент `docker-compose.yml`:
 
 ```yaml
-  schedule-service:
+  reports-service:
     build:
-      context: ./services/schedule-service
-    container_name: schedule-service
+      context: ./services/reports-service
+    container_name: reports-service
     env_file:
       - .env
     environment:
-      SERVICE_NAME: schedule-service
+      SERVICE_NAME: reports-service
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: otp_user
       DB_PASSWORD: otp_password
       DB_NAME: otp_main
+      REPORT_STORAGE_PATH: /data/reports
+      REPORT_STORAGE_BASE_URL: https://files.example.com/reports/
     depends_on:
       - postgres
+    volumes:
+      - reports_data:/data/reports
     ports:
-      - "8007:8000"
+      - "8008:8000"
+
+volumes:
+  reports_data:
 ```
 
 ---
 
 ## 10. Минимальные тесты
 
-Рекомендуется:
+### Юнит-тесты `reports_service`
 
-### Юнит-тесты `schedule_service`
+Покрыть:
 
-* создание занятия:
+1. `start_generation`:
 
-  * успешный кейс;
-  * проверка, что `end_at > start_at`;
-* обновление занятия (меняются только переданные поля);
-* получение расписания для пользователя:
+   * создаётся операция со статусом `pending` / `completed`;
+   * создаётся запись в `reports` (при синхронной генерации).
 
-  * фильтрация по интервалу дат;
-* отметка посещаемости:
+2. `get_operation_status`:
 
-  * корректное обновление/создание записей.
+   * корректный возврат данных по существующей операции;
+   * ошибка 404, если операция не найдена.
+
+3. `regenerate_report`:
+
+   * создаётся новая операция с теми же `type`/`format`/`filters_json`;
+   * не падает, если исходный отчёт в статусе `completed`.
 
 ### Интеграционные тесты HTTP
 
-* `POST /api/courses/{id}/lessons` – создаёт занятие (роль teacher);
-* `PATCH /api/lessons/{id}` – изменяет занятие;
-* `GET /api/schedule/me` – возвращает расписание текущего пользователя;
-* `POST /api/lessons/{id}/attendance` – выставляет посещаемость;
-* `GET /api/lessons/{id}/attendance` – возвращает посещаемость.
+* `POST /api/reports:generate` – запускает операцию и возвращает `operation_id`;
+* `GET /api/reports/operations/{operation_id}` – показывает смену статуса до `completed`;
+* `GET /api/reports` – возвращает список отчётов;
+* `GET /api/reports/{report_id}` – возвращает метаданные;
+* `GET /api/reports/{report_id}/download` – возвращает ссылку на скачивание;
+* `POST /api/reports/{report_id}:regenerate` – запускает новую операцию.
 
-Этого достаточно, чтобы разработчик, не участвовавший в проектировании, смог корректно реализовать микросервис «Расписание» и встроить его в общую микросервисную архитектуру проекта.
+---
+
+Этого объёма достаточно, чтобы разработчик, не участвовавший в проектировании, смог корректно реализовать микросервис «Отчёт» и встроить его в существующую микросервисную архитектуру (с паттерном длительной операции: **запуск → статус → готовый отчёт → скачивание → перегенерация**).
 
 ```
 ```
