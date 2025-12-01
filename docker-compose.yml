@@ -32,7 +32,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: ${USER_SERVICE_DB_USER:-user_service}
-      DB_PASSWORD: ${USER_SERVICE_DB_PASSWORD:-user_service_pass}
+      DB_PASSWORD: ${USER_SERVICE_DB_PASSWORD:-user_service_pass123}
       DB_NAME: ${USER_SERVICE_DB_NAME:-user_service_db}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       JWT_ALGORITHM: HS256
@@ -58,7 +58,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: ${HOMEWORK_SERVICE_DB_USER:-homework_service}
-      DB_PASSWORD: ${HOMEWORK_SERVICE_DB_PASSWORD:-homework_service_pass}
+      DB_PASSWORD: ${HOMEWORK_SERVICE_DB_PASSWORD:-homework_service_pass123}
       DB_NAME: ${HOMEWORK_SERVICE_DB_NAME:-homework_service_db}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       GRADEBOOK_SERVICE_URL: ${GRADEBOOK_SERVICE_URL:-http://gradebook-service:8000}
@@ -84,7 +84,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: ${GRADEBOOK_SERVICE_DB_USER:-gradebook_service}
-      DB_PASSWORD: ${GRADEBOOK_SERVICE_DB_PASSWORD:-gradebook_service_pass}
+      DB_PASSWORD: ${GRADEBOOK_SERVICE_DB_PASSWORD:-gradebook_service_pass123}
       DB_NAME: ${GRADEBOOK_SERVICE_DB_NAME:-gradebook_service_db}
       ENV: ${ENV:-local}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
@@ -107,7 +107,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: ${PROFILE_SERVICE_DB_USER:-profile_service}
-      DB_PASSWORD: ${PROFILE_SERVICE_DB_PASSWORD:-profile_service_pass}
+      DB_PASSWORD: ${PROFILE_SERVICE_DB_PASSWORD:-profile_service_pass123}
       DB_NAME: ${PROFILE_SERVICE_DB_NAME:-profile_service_db}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       JWT_ALGORITHM: HS256
@@ -132,7 +132,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: ${NOTIFICATIONS_SERVICE_DB_USER:-notifications_service}
-      DB_PASSWORD: ${NOTIFICATIONS_SERVICE_DB_PASSWORD:-notifications_service_pass}
+      DB_PASSWORD: ${NOTIFICATIONS_SERVICE_DB_PASSWORD:-notifications_service_pass123}
       DB_NAME: ${NOTIFICATIONS_SERVICE_DB_NAME:-notifications_service_db}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       JWT_ALGORITHM: HS256
@@ -157,7 +157,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: ${TESTS_SERVICE_DB_USER:-tests_service}
-      DB_PASSWORD: ${TESTS_SERVICE_DB_PASSWORD:-tests_service_pass}
+      DB_PASSWORD: ${TESTS_SERVICE_DB_PASSWORD:-tests_service_pass123}
       DB_NAME: ${TESTS_SERVICE_DB_NAME:-tests_service_db}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       JWT_ALGORITHM: HS256
@@ -182,7 +182,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: ${SCHEDULE_SERVICE_DB_USER:-schedule_service}
-      DB_PASSWORD: ${SCHEDULE_SERVICE_DB_PASSWORD:-schedule_service_pass}
+      DB_PASSWORD: ${SCHEDULE_SERVICE_DB_PASSWORD:-schedule_service_pass123}
       DB_NAME: ${SCHEDULE_SERVICE_DB_NAME:-schedule_service_db}
       ENV: ${ENV:-local}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
@@ -205,7 +205,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: ${REPORTS_SERVICE_DB_USER:-reports_service}
-      DB_PASSWORD: ${REPORTS_SERVICE_DB_PASSWORD:-reports_service_pass}
+      DB_PASSWORD: ${REPORTS_SERVICE_DB_PASSWORD:-reports_service_pass123}
       DB_NAME: ${REPORTS_SERVICE_DB_NAME:-reports_service_db}
       REPORT_STORAGE_PATH: /data/reports
       REPORT_STORAGE_BASE_URL: https://files.example.com/reports/
