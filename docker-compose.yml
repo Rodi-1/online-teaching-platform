@@ -147,6 +147,54 @@ services:
       - app-network
     restart: unless-stopped
 
+  # Tests Service
+  tests-service:
+    build:
+      context: ./services/tests-service
+      dockerfile: Dockerfile
+    container_name: tests-service
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${TESTS_SERVICE_DB_USER:-tests_service}
+      DB_PASSWORD: ${TESTS_SERVICE_DB_PASSWORD:-tests_service_pass}
+      DB_NAME: ${TESTS_SERVICE_DB_NAME:-tests_service_db}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_ALGORITHM: HS256
+      ENV: ${ENV:-local}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "8006:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Schedule Service
+  schedule-service:
+    build:
+      context: ./services/schedule-service
+      dockerfile: Dockerfile
+    container_name: schedule-service
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${SCHEDULE_SERVICE_DB_USER:-schedule_service}
+      DB_PASSWORD: ${SCHEDULE_SERVICE_DB_PASSWORD:-schedule_service_pass}
+      DB_NAME: ${SCHEDULE_SERVICE_DB_NAME:-schedule_service_db}
+      ENV: ${ENV:-local}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "8007:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
   # Nginx (API Gateway / Reverse Proxy)
   # nginx:
   #   image: nginx:alpine
