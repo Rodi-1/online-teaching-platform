@@ -48,6 +48,32 @@ services:
       - app-network
     restart: unless-stopped
 
+  # Homework Service
+  homework-service:
+    build:
+      context: ./services/homework-service
+      dockerfile: Dockerfile
+    container_name: homework-service
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${HOMEWORK_SERVICE_DB_USER:-homework_service}
+      DB_PASSWORD: ${HOMEWORK_SERVICE_DB_PASSWORD:-homework_service_pass}
+      DB_NAME: ${HOMEWORK_SERVICE_DB_NAME:-homework_service_db}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      GRADEBOOK_SERVICE_URL: ${GRADEBOOK_SERVICE_URL:-http://gradebook-service:8000}
+      USER_SERVICE_URL: ${USER_SERVICE_URL:-http://user-service:8000}
+      ENV: ${ENV:-local}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "8002:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
   # Nginx (API Gateway / Reverse Proxy)
   # nginx:
   #   image: nginx:alpine

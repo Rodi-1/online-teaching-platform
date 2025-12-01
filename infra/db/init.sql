@@ -24,9 +24,28 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'user_service_db')\gex
 -- Grant privileges
 GRANT ALL PRIVILEGES ON DATABASE user_service_db TO user_service;
 
+-- Create user for homework service
+DO
+$do$
+BEGIN
+   IF NOT EXISTS (
+      SELECT FROM pg_catalog.pg_roles
+      WHERE  rolname = 'homework_service') THEN
+      
+      CREATE ROLE homework_service LOGIN PASSWORD 'homework_service_pass123';
+   END IF;
+END
+$do$;
+
+-- Create database for homework service
+SELECT 'CREATE DATABASE homework_service_db OWNER homework_service'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'homework_service_db')\gexec
+
+-- Grant privileges
+GRANT ALL PRIVILEGES ON DATABASE homework_service_db TO homework_service;
+
 -- You can add initialization for other services here as they are developed
 -- Example:
--- CREATE DATABASE homework_service_db OWNER homework_service;
 -- CREATE DATABASE gradebook_service_db OWNER gradebook_service;
 -- etc.
 
