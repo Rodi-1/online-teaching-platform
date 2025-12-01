@@ -1,9 +1,0 @@
-{
-  "operation_id": "op-9b2d8c0f-51a4-4f9e-8c3a-7e1d2c6b8f33",
-  "status": "pending",
-  "type": "course_performance",
-  "format": "xlsx",
-  "original_report_id": "rep-81c2f4b9-1a2d-4e6c-9f7a-3b5d7e9c1f23",
-  "requested_by": "teacher-42",
-  "requested_at": "2025-03-05T09:00:00Z"
-}

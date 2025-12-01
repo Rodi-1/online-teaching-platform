@@ -1,0 +1,32 @@
+name: CD - Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Build Docker images
+      run: |
+        docker-compose build
+    
+    # Add your deployment steps here based on your infrastructure
+    # Examples:
+    # - Push to Docker registry
+    # - Deploy to Kubernetes
+    # - Deploy to AWS/Azure/GCP
+    # - Deploy to VPS
+    
+    - name: Run deployment
+      run: |
+        echo "Add your deployment commands here"
+        # docker-compose up -d
+        # kubectl apply -f k8s/
+        # etc.
+

@@ -23,4 +23,4 @@ online-teaching-platform/
 └── .github/
     └── workflows/
         ├── ci.yml          # линтеры, тесты
-        └── cd.yml          # деплой (если будешь делать)
+        └── cd.yml          # деплой
