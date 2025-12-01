@@ -44,8 +44,63 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'homework_service_db')
 -- Grant privileges
 GRANT ALL PRIVILEGES ON DATABASE homework_service_db TO homework_service;
 
--- You can add initialization for other services here as they are developed
--- Example:
--- CREATE DATABASE gradebook_service_db OWNER gradebook_service;
--- etc.
+-- Create user for gradebook service
+DO
+$do$
+BEGIN
+   IF NOT EXISTS (
+      SELECT FROM pg_catalog.pg_roles
+      WHERE  rolname = 'gradebook_service') THEN
+      
+      CREATE ROLE gradebook_service LOGIN PASSWORD 'gradebook_service_pass123';
+   END IF;
+END
+$do$;
+
+-- Create database for gradebook service
+SELECT 'CREATE DATABASE gradebook_service_db OWNER gradebook_service'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'gradebook_service_db')\gexec
+
+-- Grant privileges
+GRANT ALL PRIVILEGES ON DATABASE gradebook_service_db TO gradebook_service;
+
+-- Create user for profile service
+DO
+$do$
+BEGIN
+   IF NOT EXISTS (
+      SELECT FROM pg_catalog.pg_roles
+      WHERE  rolname = 'profile_service') THEN
+      
+      CREATE ROLE profile_service LOGIN PASSWORD 'profile_service_pass123';
+   END IF;
+END
+$do$;
+
+-- Create database for profile service
+SELECT 'CREATE DATABASE profile_service_db OWNER profile_service'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'profile_service_db')\gexec
+
+-- Grant privileges
+GRANT ALL PRIVILEGES ON DATABASE profile_service_db TO profile_service;
+
+-- Create user for notifications service
+DO
+$do$
+BEGIN
+   IF NOT EXISTS (
+      SELECT FROM pg_catalog.pg_roles
+      WHERE  rolname = 'notifications_service') THEN
+      
+      CREATE ROLE notifications_service LOGIN PASSWORD 'notifications_service_pass123';
+   END IF;
+END
+$do$;
+
+-- Create database for notifications service
+SELECT 'CREATE DATABASE notifications_service_db OWNER notifications_service'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'notifications_service_db')\gexec
+
+-- Grant privileges
+GRANT ALL PRIVILEGES ON DATABASE notifications_service_db TO notifications_service;
 

@@ -74,6 +74,79 @@ services:
       - app-network
     restart: unless-stopped
 
+  # Gradebook Service
+  gradebook-service:
+    build:
+      context: ./services/gradebook-service
+      dockerfile: Dockerfile
+    container_name: gradebook-service
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${GRADEBOOK_SERVICE_DB_USER:-gradebook_service}
+      DB_PASSWORD: ${GRADEBOOK_SERVICE_DB_PASSWORD:-gradebook_service_pass}
+      DB_NAME: ${GRADEBOOK_SERVICE_DB_NAME:-gradebook_service_db}
+      ENV: ${ENV:-local}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "8003:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Profile Service
+  profile-service:
+    build:
+      context: ./services/profile-service
+      dockerfile: Dockerfile
+    container_name: profile-service
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${PROFILE_SERVICE_DB_USER:-profile_service}
+      DB_PASSWORD: ${PROFILE_SERVICE_DB_PASSWORD:-profile_service_pass}
+      DB_NAME: ${PROFILE_SERVICE_DB_NAME:-profile_service_db}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_ALGORITHM: HS256
+      ENV: ${ENV:-local}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "8004:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Notifications Service
+  notifications-service:
+    build:
+      context: ./services/notifications-service
+      dockerfile: Dockerfile
+    container_name: notifications-service
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${NOTIFICATIONS_SERVICE_DB_USER:-notifications_service}
+      DB_PASSWORD: ${NOTIFICATIONS_SERVICE_DB_PASSWORD:-notifications_service_pass}
+      DB_NAME: ${NOTIFICATIONS_SERVICE_DB_NAME:-notifications_service_db}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_ALGORITHM: HS256
+      ENV: ${ENV:-local}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "8005:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
   # Nginx (API Gateway / Reverse Proxy)
   # nginx:
   #   image: nginx:alpine
