@@ -1,53 +1,94 @@
 """
-Unit tests for gradebook service
+Unit tests for gradebook service - testing pure business logic
 """
 import pytest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 from uuid import uuid4
 
 from app.services.gradebook_service import GradebookService
 
 
-def test_record_grade_validates_score_range():
-    """Test that record_grade validates score is within valid range"""
-    # Arrange
-    mock_repo = Mock()
-    service = GradebookService(mock_repo)
+class TestCalculateGrade:
+    """Tests for calculate_grade method - pure logic without DB"""
     
-    # Act & Assert - negative score
-    from fastapi import HTTPException
-    with pytest.raises(HTTPException) as exc_info:
-        service.record_grade(
-            student_id=uuid4(),
-            course_id=uuid4(),
-            assignment_type="homework",
-            assignment_id=uuid4(),
-            score=-10,  # Invalid negative score
-            max_score=100,
-            recorded_by=str(uuid4())
-        )
+    def test_calculate_grade_excellent(self):
+        """Test that 90%+ returns grade 5"""
+        # Arrange
+        mock_db = Mock()
+        service = GradebookService(mock_db)
+        
+        # Act
+        percent, grade = service.calculate_grade(score=95, max_score=100)
+        
+        # Assert
+        assert percent == 95.0
+        assert grade == 5
     
-    assert exc_info.value.status_code == 400
-
-
-def test_record_grade_validates_score_not_exceeds_max():
-    """Test that score cannot exceed max_score"""
-    # Arrange
-    mock_repo = Mock()
-    service = GradebookService(mock_repo)
+    def test_calculate_grade_good(self):
+        """Test that 75-89% returns grade 4"""
+        mock_db = Mock()
+        service = GradebookService(mock_db)
+        
+        percent, grade = service.calculate_grade(score=80, max_score=100)
+        
+        assert percent == 80.0
+        assert grade == 4
     
-    # Act & Assert
-    from fastapi import HTTPException
-    with pytest.raises(HTTPException) as exc_info:
-        service.record_grade(
-            student_id=uuid4(),
-            course_id=uuid4(),
-            assignment_type="test",
-            assignment_id=uuid4(),
-            score=150,  # Exceeds max_score
-            max_score=100,
-            recorded_by=str(uuid4())
-        )
+    def test_calculate_grade_satisfactory(self):
+        """Test that 60-74% returns grade 3"""
+        mock_db = Mock()
+        service = GradebookService(mock_db)
+        
+        percent, grade = service.calculate_grade(score=65, max_score=100)
+        
+        assert percent == 65.0
+        assert grade == 3
     
-    assert exc_info.value.status_code == 400
-
+    def test_calculate_grade_unsatisfactory(self):
+        """Test that <60% returns grade 2"""
+        mock_db = Mock()
+        service = GradebookService(mock_db)
+        
+        percent, grade = service.calculate_grade(score=45, max_score=100)
+        
+        assert percent == 45.0
+        assert grade == 2
+    
+    def test_calculate_grade_negative_score_raises_error(self):
+        """Test that negative score raises HTTPException"""
+        from fastapi import HTTPException
+        
+        mock_db = Mock()
+        service = GradebookService(mock_db)
+        
+        with pytest.raises(HTTPException) as exc_info:
+            service.calculate_grade(score=-10, max_score=100)
+        
+        assert exc_info.value.status_code == 400
+        assert "negative" in exc_info.value.detail.lower()
+    
+    def test_calculate_grade_score_exceeds_max_raises_error(self):
+        """Test that score > max_score raises HTTPException"""
+        from fastapi import HTTPException
+        
+        mock_db = Mock()
+        service = GradebookService(mock_db)
+        
+        with pytest.raises(HTTPException) as exc_info:
+            service.calculate_grade(score=150, max_score=100)
+        
+        assert exc_info.value.status_code == 400
+        assert "exceed" in exc_info.value.detail.lower()
+    
+    def test_calculate_grade_zero_max_score_raises_error(self):
+        """Test that max_score <= 0 raises HTTPException"""
+        from fastapi import HTTPException
+        
+        mock_db = Mock()
+        service = GradebookService(mock_db)
+        
+        with pytest.raises(HTTPException) as exc_info:
+            service.calculate_grade(score=50, max_score=0)
+        
+        assert exc_info.value.status_code == 400
+        assert "positive" in exc_info.value.detail.lower()

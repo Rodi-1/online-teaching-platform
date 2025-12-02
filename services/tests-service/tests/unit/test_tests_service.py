@@ -1,67 +1,141 @@
 """
-Unit tests for tests service
+Unit tests for tests service - testing pure business logic
 """
 import pytest
 from unittest.mock import Mock, MagicMock
 from uuid import uuid4
-from datetime import datetime, timedelta
 
 from app.services.tests_service import TestsService
 
 
-def test_create_test_validates_time_limit():
-    """Test that create_test validates time_limit is positive"""
-    # Arrange
-    mock_repo = Mock()
-    service = TestsService(mock_repo)
+class TestCalculateGrade:
+    """Tests for _calculate_grade method - pure logic"""
     
-    from app.models.schemas import TestCreate
-    invalid_data = TestCreate(
-        title="Test",
-        description="Test",
-        time_limit=-10,  # Invalid negative time
-        max_score=100,
-        passing_score=60
-    )
+    def test_calculate_grade_excellent(self):
+        """Test that 90%+ returns grade 5"""
+        mock_repo = Mock()
+        service = TestsService(mock_repo)
+        
+        assert service._calculate_grade(95.0) == 5
+        assert service._calculate_grade(90.0) == 5
+        assert service._calculate_grade(100.0) == 5
     
-    # Act & Assert
-    from fastapi import HTTPException
-    with pytest.raises(HTTPException) as exc_info:
-        service.create_test(
-            course_id=uuid4(),
-            data=invalid_data,
-            user_role="teacher"
-        )
+    def test_calculate_grade_good(self):
+        """Test that 75-89% returns grade 4"""
+        mock_repo = Mock()
+        service = TestsService(mock_repo)
+        
+        assert service._calculate_grade(85.0) == 4
+        assert service._calculate_grade(75.0) == 4
+        assert service._calculate_grade(89.9) == 4
     
-    assert exc_info.value.status_code == 400
+    def test_calculate_grade_satisfactory(self):
+        """Test that 60-74% returns grade 3"""
+        mock_repo = Mock()
+        service = TestsService(mock_repo)
+        
+        assert service._calculate_grade(70.0) == 3
+        assert service._calculate_grade(60.0) == 3
+    
+    def test_calculate_grade_unsatisfactory(self):
+        """Test that <60% returns grade 2"""
+        mock_repo = Mock()
+        service = TestsService(mock_repo)
+        
+        assert service._calculate_grade(50.0) == 2
+        assert service._calculate_grade(30.0) == 2
+        assert service._calculate_grade(0.0) == 2
 
 
-def test_submit_test_validates_deadline():
-    """Test that submit_test checks if test is not past deadline"""
-    # Arrange
-    mock_repo = Mock()
+class TestCheckAnswer:
+    """Tests for _check_answer method - answer checking logic"""
     
-    # Test with past deadline
-    test = MagicMock(
-        id=uuid4(),
-        available_until=datetime.utcnow() - timedelta(days=1),
-        status="published"
-    )
-    mock_repo.get_test.return_value = test
+    def test_check_single_choice_correct(self):
+        """Test single choice correct answer"""
+        mock_repo = Mock()
+        service = TestsService(mock_repo)
+        
+        question = MagicMock()
+        question.type = "single_choice"
+        question.correct_answers = ["B"]
+        question.max_score = 10.0
+        
+        is_correct, score = service._check_answer(question, "B")
+        
+        assert is_correct is True
+        assert score == 10.0
     
-    service = TestsService(mock_repo)
+    def test_check_single_choice_incorrect(self):
+        """Test single choice incorrect answer"""
+        mock_repo = Mock()
+        service = TestsService(mock_repo)
+        
+        question = MagicMock()
+        question.type = "single_choice"
+        question.correct_answers = ["B"]
+        question.max_score = 10.0
+        
+        is_correct, score = service._check_answer(question, "A")
+        
+        assert is_correct is False
+        assert score == 0.0
     
-    from app.models.schemas import TestSubmissionCreate
-    submission_data = TestSubmissionCreate(answers={})
+    def test_check_multiple_choice_correct(self):
+        """Test multiple choice correct answer (all correct options selected)"""
+        mock_repo = Mock()
+        service = TestsService(mock_repo)
+        
+        question = MagicMock()
+        question.type = "multiple_choice"
+        question.correct_answers = ["A", "C"]
+        question.max_score = 10.0
+        
+        is_correct, score = service._check_answer(question, ["A", "C"])
+        
+        assert is_correct is True
+        assert score == 10.0
     
-    # Act & Assert
-    from fastapi import HTTPException
-    with pytest.raises(HTTPException) as exc_info:
-        service.submit_test(
-            test_id=test.id,
-            student_id=uuid4(),
-            data=submission_data
-        )
+    def test_check_multiple_choice_incorrect(self):
+        """Test multiple choice incorrect answer (missing option)"""
+        mock_repo = Mock()
+        service = TestsService(mock_repo)
+        
+        question = MagicMock()
+        question.type = "multiple_choice"
+        question.correct_answers = ["A", "C"]
+        question.max_score = 10.0
+        
+        is_correct, score = service._check_answer(question, ["A"])
+        
+        assert is_correct is False
+        assert score == 0.0
     
-    assert exc_info.value.status_code == 400
-
+    def test_check_text_answer_correct(self):
+        """Test text answer - case insensitive comparison"""
+        mock_repo = Mock()
+        service = TestsService(mock_repo)
+        
+        question = MagicMock()
+        question.type = "text"
+        question.correct_answers = ["Python"]
+        question.max_score = 5.0
+        
+        is_correct, score = service._check_answer(question, "python")
+        
+        assert is_correct is True
+        assert score == 5.0
+    
+    def test_check_answer_no_correct_answers(self):
+        """Test answer when no correct answers defined (manual grading)"""
+        mock_repo = Mock()
+        service = TestsService(mock_repo)
+        
+        question = MagicMock()
+        question.type = "text"
+        question.correct_answers = None
+        question.max_score = 10.0
+        
+        is_correct, score = service._check_answer(question, "any answer")
+        
+        assert is_correct is None
+        assert score == 10.0

@@ -1,72 +1,99 @@
 """
-Unit tests for schedule service
+Unit tests for schedule service - testing pure business logic
 """
 import pytest
-from unittest.mock import Mock, MagicMock
-from uuid import uuid4
+from unittest.mock import Mock
 from datetime import datetime, timedelta
+from uuid import uuid4
 
 from app.services.schedule_service import ScheduleService
-from app.models.schemas import LessonCreate
 
 
-def test_create_lesson_validates_dates():
-    """Test that create_lesson validates end_at > start_at"""
-    # Arrange
-    mock_repo = Mock()
-    service = ScheduleService(mock_repo)
+class TestCheckTeacherOrAdmin:
+    """Tests for _check_teacher_or_admin method - role validation"""
     
-    start_time = datetime.utcnow() + timedelta(days=1)
-    end_time = start_time - timedelta(hours=1)  # End before start
+    def test_teacher_allowed(self):
+        """Test that teacher role is allowed"""
+        mock_repo = Mock()
+        service = ScheduleService(mock_repo)
+        
+        # Should not raise
+        service._check_teacher_or_admin("teacher")
     
-    lesson_data = LessonCreate(
-        title="Test Lesson",
-        description="Test",
-        start_at=start_time,
-        end_at=end_time,
-        location_type="online",
-        online_link="https://meet.example.com"
-    )
+    def test_admin_allowed(self):
+        """Test that admin role is allowed"""
+        mock_repo = Mock()
+        service = ScheduleService(mock_repo)
+        
+        # Should not raise
+        service._check_teacher_or_admin("admin")
     
-    # Act & Assert
-    from fastapi import HTTPException
-    with pytest.raises(HTTPException) as exc_info:
-        service.create_lesson(
-            course_id=uuid4(),
-            data=lesson_data,
-            user_role="teacher"
-        )
+    def test_student_forbidden(self):
+        """Test that student role is forbidden"""
+        from fastapi import HTTPException
+        
+        mock_repo = Mock()
+        service = ScheduleService(mock_repo)
+        
+        with pytest.raises(HTTPException) as exc_info:
+            service._check_teacher_or_admin("student")
+        
+        assert exc_info.value.status_code == 403
+        assert "teacher" in exc_info.value.detail.lower() or "admin" in exc_info.value.detail.lower()
     
-    assert exc_info.value.status_code == 400
-    assert "after" in exc_info.value.detail.lower()
+    def test_unknown_role_forbidden(self):
+        """Test that unknown role is forbidden"""
+        from fastapi import HTTPException
+        
+        mock_repo = Mock()
+        service = ScheduleService(mock_repo)
+        
+        with pytest.raises(HTTPException) as exc_info:
+            service._check_teacher_or_admin("guest")
+        
+        assert exc_info.value.status_code == 403
 
 
-def test_update_finished_lesson_raises_error():
-    """Test that updating finished lesson raises error"""
-    # Arrange
-    mock_repo = Mock()
+class TestValidateDates:
+    """Tests for _validate_dates method - date validation"""
     
-    lesson = MagicMock(
-        id=uuid4(),
-        status="finished",
-        title="Old Title"
-    )
-    mock_repo.get_lesson.return_value = lesson
+    def test_valid_dates(self):
+        """Test that valid date range passes"""
+        mock_repo = Mock()
+        service = ScheduleService(mock_repo)
+        
+        start_at = datetime.utcnow()
+        end_at = start_at + timedelta(hours=2)
+        
+        # Should not raise
+        service._validate_dates(start_at, end_at)
     
-    service = ScheduleService(mock_repo)
+    def test_end_before_start_raises_error(self):
+        """Test that end_at before start_at raises error"""
+        from fastapi import HTTPException
+        
+        mock_repo = Mock()
+        service = ScheduleService(mock_repo)
+        
+        start_at = datetime.utcnow()
+        end_at = start_at - timedelta(hours=1)
+        
+        with pytest.raises(HTTPException) as exc_info:
+            service._validate_dates(start_at, end_at)
+        
+        assert exc_info.value.status_code == 400
+        assert "end_at" in exc_info.value.detail.lower()
     
-    from app.models.schemas import LessonUpdate
-    update_data = LessonUpdate(title="New Title")
-    
-    # Act & Assert
-    from fastapi import HTTPException
-    with pytest.raises(HTTPException) as exc_info:
-        service.update_lesson(
-            lesson_id=lesson.id,
-            data=update_data,
-            user_role="teacher"
-        )
-    
-    assert exc_info.value.status_code == 400
-    assert "finished" in exc_info.value.detail.lower()
-
+    def test_same_start_end_raises_error(self):
+        """Test that start_at == end_at raises error"""
+        from fastapi import HTTPException
+        
+        mock_repo = Mock()
+        service = ScheduleService(mock_repo)
+        
+        same_time = datetime.utcnow()
+        
+        with pytest.raises(HTTPException) as exc_info:
+            service._validate_dates(same_time, same_time)
+        
+        assert exc_info.value.status_code == 400

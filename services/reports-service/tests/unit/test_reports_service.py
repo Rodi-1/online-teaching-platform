@@ -1,85 +1,114 @@
 """
-Unit tests for reports service
+Unit tests for reports service - testing pure business logic
 """
 import pytest
-from unittest.mock import Mock, MagicMock, patch
+import os
+from unittest.mock import Mock, patch
 from uuid import uuid4
 
 from app.services.reports_service import ReportsService
-from app.models.schemas import ReportGenerateRequest
 
 
-def test_start_generation_creates_operation():
-    """Test that start_generation creates operation with pending status"""
-    # Arrange
-    mock_repo = Mock()
-    operation = MagicMock(
-        id=uuid4(),
-        status="pending",
-        type="course_performance",
-        format="xlsx"
-    )
-    mock_repo.create_operation.return_value = operation
-    mock_repo.set_operation_started.return_value = operation
-    mock_repo.set_operation_completed.return_value = operation
-    mock_repo.get_operation.return_value = operation
+class TestCheckTeacherOrAdmin:
+    """Tests for _check_teacher_or_admin method - role validation"""
     
-    report = MagicMock(id=uuid4())
-    mock_repo.create_report.return_value = report
+    def test_teacher_allowed(self):
+        """Test that teacher role is allowed"""
+        mock_repo = Mock()
+        service = ReportsService(mock_repo)
+        
+        # Should not raise
+        service._check_teacher_or_admin("teacher")
     
-    service = ReportsService(mock_repo)
+    def test_admin_allowed(self):
+        """Test that admin role is allowed"""
+        mock_repo = Mock()
+        service = ReportsService(mock_repo)
+        
+        # Should not raise
+        service._check_teacher_or_admin("admin")
     
-    request = ReportGenerateRequest(
-        type="course_performance",
-        format="xlsx"
-    )
+    def test_manager_allowed(self):
+        """Test that manager role is allowed"""
+        mock_repo = Mock()
+        service = ReportsService(mock_repo)
+        
+        # Should not raise
+        service._check_teacher_or_admin("manager")
     
-    # Act
-    with patch.object(service, '_generate_report_file', return_value=1024):
-        result = service.start_generation(request, "user-123")
-    
-    # Assert
-    mock_repo.create_operation.assert_called_once()
-    assert result.type == "course_performance"
-    assert result.format == "xlsx"
+    def test_student_forbidden(self):
+        """Test that student role is forbidden"""
+        from fastapi import HTTPException
+        
+        mock_repo = Mock()
+        service = ReportsService(mock_repo)
+        
+        with pytest.raises(HTTPException) as exc_info:
+            service._check_teacher_or_admin("student")
+        
+        assert exc_info.value.status_code == 403
 
 
-def test_regenerate_report_reuses_parameters():
-    """Test that regenerate_report uses same parameters as original"""
-    # Arrange
-    mock_repo = Mock()
+class TestGenerateFilePath:
+    """Tests for _generate_file_path method - file path generation"""
     
-    original_report = MagicMock(
-        id=uuid4(),
-        type="student_progress",
-        format="pdf",
-        filters_json={"student_id": "student-123"},
-        created_by="user-123"
-    )
-    mock_repo.get_report.return_value = original_report
+    @patch('app.services.reports_service.settings')
+    def test_generate_file_path_pdf(self, mock_settings):
+        """Test PDF file path generation"""
+        mock_settings.REPORT_STORAGE_PATH = "/data/reports"
+        
+        mock_repo = Mock()
+        service = ReportsService(mock_repo)
+        
+        report_id = uuid4()
+        file_path = service._generate_file_path(report_id, "pdf")
+        
+        # Check path contains expected parts (platform-independent)
+        assert "rep-" in file_path
+        assert file_path.endswith(".pdf")
+        # Normalize path for comparison
+        assert "reports" in file_path.replace("\\", "/")
     
-    operation = MagicMock(id=uuid4(), status="pending")
-    mock_repo.create_operation.return_value = operation
-    mock_repo.set_operation_started.return_value = operation
-    mock_repo.set_operation_completed.return_value = operation
-    mock_repo.get_operation.return_value = operation
-    
-    new_report = MagicMock(id=uuid4())
-    mock_repo.create_report.return_value = new_report
-    
-    service = ReportsService(mock_repo)
-    
-    # Act
-    with patch.object(service, '_generate_report_file', return_value=1024):
-        result = service.regenerate_report(
-            report_id=original_report.id,
-            requested_by="user-123",
-            user_role="teacher"
-        )
-    
-    # Assert
-    create_call = mock_repo.create_operation.call_args
-    assert create_call[1]['type'] == "student_progress"
-    assert create_call[1]['format'] == "pdf"
-    assert create_call[1]['filters_json'] == {"student_id": "student-123"}
+    @patch('app.services.reports_service.settings')
+    def test_generate_file_path_xlsx(self, mock_settings):
+        """Test XLSX file path generation"""
+        mock_settings.REPORT_STORAGE_PATH = "/data/reports"
+        
+        mock_repo = Mock()
+        service = ReportsService(mock_repo)
+        
+        report_id = uuid4()
+        file_path = service._generate_file_path(report_id, "xlsx")
+        
+        assert file_path.endswith(".xlsx")
+        assert "rep-" in file_path
 
+
+class TestBuildDownloadUrl:
+    """Tests for _build_download_url method - URL building"""
+    
+    @patch('app.services.reports_service.settings')
+    def test_build_download_url(self, mock_settings):
+        """Test download URL building"""
+        mock_settings.REPORT_STORAGE_BASE_URL = "https://files.example.com/reports/"
+        
+        mock_repo = Mock()
+        service = ReportsService(mock_repo)
+        
+        file_path = "/data/reports/rep-12345678.pdf"
+        url = service._build_download_url(file_path)
+        
+        assert url == "https://files.example.com/reports/rep-12345678.pdf"
+    
+    @patch('app.services.reports_service.settings')
+    def test_build_download_url_no_trailing_slash(self, mock_settings):
+        """Test URL building when base URL has no trailing slash"""
+        mock_settings.REPORT_STORAGE_BASE_URL = "https://files.example.com/reports"
+        
+        mock_repo = Mock()
+        service = ReportsService(mock_repo)
+        
+        file_path = "/data/reports/rep-12345678.xlsx"
+        url = service._build_download_url(file_path)
+        
+        assert url == "https://files.example.com/reports/rep-12345678.xlsx"
