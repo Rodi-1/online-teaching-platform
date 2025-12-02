@@ -1,6 +1,8 @@
 """
 Test configuration and fixtures
 """
+import os
+import tempfile
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -11,7 +13,7 @@ from sqlalchemy.pool import StaticPool
 from app.db.session import get_db
 from app.models.db_models import Base
 from app.api.v1 import reports
-from app.core.config import get_settings
+from app.core.config import get_settings, Settings
 
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -23,6 +25,13 @@ engine = create_engine(
 )
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+@pytest.fixture(scope="function")
+def temp_report_dir():
+    """Create a temporary directory for reports"""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        yield tmpdir
 
 
 @pytest.fixture
@@ -38,8 +47,15 @@ def db_session():
 
 
 @pytest.fixture
-def client(db_session):
+def client(db_session, temp_report_dir, monkeypatch):
     """Create a test client with overridden database dependency"""
+    # Override settings to use temp directory
+    monkeypatch.setenv("REPORT_STORAGE_PATH", temp_report_dir)
+    monkeypatch.setenv("REPORT_STORAGE_BASE_URL", f"file://{temp_report_dir}/")
+    
+    # Clear cached settings to pick up new env vars
+    get_settings.cache_clear()
+    
     settings = get_settings()
     test_app = FastAPI(
         title=settings.APP_NAME,
@@ -67,6 +83,8 @@ def client(db_session):
         yield test_client
     
     test_app.dependency_overrides.clear()
+    # Clear cache again for next test
+    get_settings.cache_clear()
 
 
 @pytest.fixture
