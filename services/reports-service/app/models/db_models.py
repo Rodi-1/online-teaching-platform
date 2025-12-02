@@ -7,9 +7,10 @@ import uuid
 import enum
 
 from sqlalchemy import DateTime, String, Text, Integer, Enum as SQLEnum, Index, ForeignKey, JSON
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql import func
+
+from app.models.guid import GUID
 
 
 class Base(DeclarativeBase):
@@ -50,7 +51,7 @@ class ReportOperation(Base):
     __tablename__ = "report_operations"
     
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         primary_key=True,
         default=uuid.uuid4,
         index=True
@@ -85,7 +86,7 @@ class ReportOperation(Base):
     )
     progress_percent: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     report_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         ForeignKey("reports.id", ondelete="SET NULL"),
         nullable=True
     )
@@ -101,7 +102,7 @@ class Report(Base):
     __tablename__ = "reports"
     
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         primary_key=True,
         default=uuid.uuid4,
         index=True

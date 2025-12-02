@@ -7,9 +7,10 @@ import uuid
 import enum
 
 from sqlalchemy import DateTime, String, Integer, Float, Text, Boolean, JSON, Enum as SQLEnum, Index, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+
+from app.models.guid import GUID
 
 
 class Base(DeclarativeBase):
@@ -44,18 +45,18 @@ class Test(Base):
     __tablename__ = "tests"
     
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         primary_key=True,
         default=uuid.uuid4,
         index=True
     )
     course_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         nullable=False,
         index=True
     )
     lesson_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         nullable=True
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -96,13 +97,13 @@ class TestQuestion(Base):
     __tablename__ = "test_questions"
     
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         primary_key=True,
         default=uuid.uuid4,
         index=True
     )
     test_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         ForeignKey("tests.id", ondelete="CASCADE"),
         nullable=False,
         index=True
@@ -127,19 +128,19 @@ class TestAttempt(Base):
     __tablename__ = "test_attempts"
     
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         primary_key=True,
         default=uuid.uuid4,
         index=True
     )
     test_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         ForeignKey("tests.id", ondelete="CASCADE"),
         nullable=False,
         index=True
     )
     student_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         nullable=False,
         index=True
     )
@@ -176,19 +177,19 @@ class TestAnswer(Base):
     __tablename__ = "test_answers"
     
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         primary_key=True,
         default=uuid.uuid4,
         index=True
     )
     attempt_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         ForeignKey("test_attempts.id", ondelete="CASCADE"),
         nullable=False,
         index=True
     )
     question_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         ForeignKey("test_questions.id", ondelete="CASCADE"),
         nullable=False,
         index=True

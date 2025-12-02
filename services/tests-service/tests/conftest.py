@@ -2,20 +2,24 @@
 Test configuration and fixtures
 """
 import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from fastapi.testclient import TestClient
+from sqlalchemy.pool import StaticPool
 
-from app.main import app
-from app.models.db_models import Base
 from app.db.session import get_db
+from app.models.db_models import Base
+from app.api.v1 import tests
+from app.core.config import get_settings
 
 
-SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///./test.db"
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
 engine = create_engine(
-    SQLALCHEMY_TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False}
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -35,18 +39,33 @@ def db_session():
 @pytest.fixture(scope="function")
 def client(db_session):
     """Create a test client with overridden database dependency"""
+    settings = get_settings()
+    test_app = FastAPI(
+        title=settings.APP_NAME,
+        version=settings.APP_VERSION,
+        description="Test Tests Service"
+    )
+    
+    # Include routers
+    test_app.include_router(tests.router, prefix="/api")
+    
+    # Add health endpoint
+    @test_app.get("/health")
+    def health_check():
+        return {"status": "healthy", "service": settings.APP_NAME}
+    
     def override_get_db():
         try:
             yield db_session
         finally:
             pass
     
-    app.dependency_overrides[get_db] = override_get_db
+    test_app.dependency_overrides[get_db] = override_get_db
     
-    with TestClient(app) as test_client:
+    with TestClient(test_app) as test_client:
         yield test_client
     
-    app.dependency_overrides.clear()
+    test_app.dependency_overrides.clear()
 
 
 @pytest.fixture
@@ -64,17 +83,16 @@ def sample_course_id():
 
 
 @pytest.fixture
-def mock_jwt_token(sample_user_id):
+def mock_jwt_token(sample_user_id, client):
     """Mock JWT token for testing"""
     from app.api.dependencies import get_current_user_id
     
     def override_get_current_user_id():
         return sample_user_id
     
-    app.dependency_overrides[get_current_user_id] = override_get_current_user_id
+    client.app.dependency_overrides[get_current_user_id] = override_get_current_user_id
     
     yield "mock_token"
     
-    if get_current_user_id in app.dependency_overrides:
-        del app.dependency_overrides[get_current_user_id]
-
+    if get_current_user_id in client.app.dependency_overrides:
+        del client.app.dependency_overrides[get_current_user_id]

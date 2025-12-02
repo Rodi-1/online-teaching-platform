@@ -1,7 +1,7 @@
 """
 Homework service - business logic layer
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Tuple, List
 from uuid import UUID
 import httpx
@@ -42,7 +42,11 @@ class HomeworkService:
             HTTPException: If validation fails
         """
         # Validate due_at is in the future
-        if data.due_at <= datetime.utcnow():
+        # Make due_at timezone-aware if it isn't
+        due_at = data.due_at
+        if due_at.tzinfo is None:
+            due_at = due_at.replace(tzinfo=timezone.utc)
+        if due_at <= datetime.now(timezone.utc):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Due date must be in the future"
@@ -284,7 +288,7 @@ class HomeworkService:
                 homework_id=homework.id,
                 score=data.score,
                 max_score=homework.max_score,
-                graded_at=datetime.utcnow()
+                graded_at=datetime.now(timezone.utc)
             )
         except Exception as e:
             # Log error but don't fail the grading

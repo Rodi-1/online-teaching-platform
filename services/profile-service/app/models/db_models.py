@@ -6,9 +6,10 @@ from typing import Optional
 import uuid
 
 from sqlalchemy import DateTime, String, Float, Integer, Text, JSON
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql import func
+
+from app.models.guid import GUID
 
 
 class Base(DeclarativeBase):
@@ -21,13 +22,13 @@ class UserProfile(Base):
     __tablename__ = "user_profiles"
     
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         primary_key=True,
         default=uuid.uuid4,
         index=True
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         nullable=False,
         unique=True,
         index=True
@@ -72,13 +73,13 @@ class Achievement(Base):
     __tablename__ = "achievements"
     
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         primary_key=True,
         default=uuid.uuid4,
         index=True
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         nullable=False,
         index=True
     )

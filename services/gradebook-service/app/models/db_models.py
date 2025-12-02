@@ -5,9 +5,10 @@ import uuid
 import enum
 
 from sqlalchemy import DateTime, String, Float, Integer, Text, Enum as SQLEnum, Index
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql import func
+
+from app.models.guid import GUID
 
 
 class Base(DeclarativeBase):
@@ -25,14 +26,14 @@ class GradeEntry(Base):
     """Grade entry model representing the gradebook_entries table"""
     __tablename__ = "gradebook_entries"
     
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(GUID(), primary_key=True, default=uuid.uuid4)
     type: Mapped[str] = mapped_column(SQLEnum(EntryType, name="entry_type"), nullable=False, index=True)
-    student_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
-    course_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
-    lesson_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
-    homework_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
-    test_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
-    attempt_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(GUID(), nullable=False, index=True)
+    course_id: Mapped[uuid.UUID] = mapped_column(GUID(), nullable=False, index=True)
+    lesson_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID(), nullable=True)
+    homework_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID(), nullable=True)
+    test_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID(), nullable=True)
+    attempt_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID(), nullable=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     score: Mapped[float] = mapped_column(Float, nullable=False)
     max_score: Mapped[float] = mapped_column(Float, nullable=False)

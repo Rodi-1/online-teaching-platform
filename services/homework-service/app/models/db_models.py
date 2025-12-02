@@ -7,9 +7,10 @@ import uuid
 import enum
 
 from sqlalchemy import Boolean, DateTime, String, Float, Integer, Text, Enum as SQLEnum, JSON
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql import func
+
+from app.models.guid import GUID
 
 
 class Base(DeclarativeBase):
@@ -36,18 +37,18 @@ class Homework(Base):
     __tablename__ = "homeworks"
     
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         primary_key=True,
         default=uuid.uuid4,
         index=True
     )
     course_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         nullable=False,
         index=True
     )
     lesson_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         nullable=True,
         index=True
     )
@@ -89,18 +90,18 @@ class HomeworkSubmission(Base):
     __tablename__ = "homework_submissions"
     
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         primary_key=True,
         default=uuid.uuid4,
         index=True
     )
     homework_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         nullable=False,
         index=True
     )
     student_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         nullable=False,
         index=True
     )

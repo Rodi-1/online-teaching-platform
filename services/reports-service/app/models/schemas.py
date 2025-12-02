@@ -32,7 +32,7 @@ class ReportGenerateRequest(BaseModel):
 
 class ReportOperationOut(BaseModel):
     """Response schema for report operation status"""
-    operation_id: UUID
+    operation_id: UUID = Field(validation_alias="id")
     status: str
     type: str
     format: str
@@ -46,6 +46,7 @@ class ReportOperationOut(BaseModel):
     
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 # ============================================================================

@@ -7,9 +7,10 @@ import uuid
 import enum
 
 from sqlalchemy import DateTime, String, Text, Enum as SQLEnum, Index, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql import func
+
+from app.models.guid import GUID
 
 
 class Base(DeclarativeBase):
@@ -42,13 +43,13 @@ class Lesson(Base):
     __tablename__ = "lessons"
     
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         primary_key=True,
         default=uuid.uuid4,
         index=True
     )
     course_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         nullable=False,
         index=True
     )
@@ -100,19 +101,19 @@ class LessonAttendance(Base):
     __tablename__ = "lesson_attendance"
     
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         primary_key=True,
         default=uuid.uuid4,
         index=True
     )
     lesson_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         ForeignKey("lessons.id", ondelete="CASCADE"),
         nullable=False,
         index=True
     )
     student_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        GUID(),
         nullable=False
     )
     status: Mapped[str] = mapped_column(

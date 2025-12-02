@@ -137,10 +137,11 @@ In production, this would contain actual report data.
         Returns:
             Operation status
         """
-        # Extract filters
+        # Extract filters - use mode="json" to convert UUID to strings
         filters_dict = None
         if request.filters:
             filters_dict = request.filters.model_dump(
+                mode="json",
                 by_alias=True,
                 exclude_none=True
             )
