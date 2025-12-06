@@ -187,7 +187,6 @@ jobs:
 
           # Переменные окружения приложения
           revision-env: |
-            PORT=8080
             ENV=prod
 
 
