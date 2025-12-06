@@ -25,13 +25,16 @@ COPY app ./app
 # Create directory for reports
 RUN mkdir -p /data/reports && chmod 777 /data/reports
 
-# Expose port
+# Default port; can be overridden (e.g. Serverless Containers sets PORT)
+ENV PORT=8000
+
+# Expose port (for local runs; serverless ignores)
 EXPOSE 8000
 
-# Health check
+# Health check respects PORT
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
+    CMD python -c "import os, requests; requests.get(f'http://localhost:{os.getenv(\"PORT\",\"8000\")}/health')" || exit 1
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the application, binding to PORT
+CMD ["/bin/sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
 

@@ -147,11 +147,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service:
-          - homework-service
-          - profile-service
-          - tests-service
-          - reports-service
+        include:
+          - service: homework-service
+            container_secret: YC_CONTAINER_HOMEWORK
+          - service: profile-service
+            container_secret: YC_CONTAINER_PROFILE
+          - service: tests-service
+            container_secret: YC_CONTAINER_TESTS
+          - service: reports-service
+            container_secret: YC_CONTAINER_REPORTS
     
     steps:
     - name: Deploy to Yandex Serverless Containers
@@ -159,7 +163,7 @@ jobs:
       with:
         yc-sa-json-credentials: ${{ secrets.YC_KEYS }}
         folder-id: ${{ secrets.FOLDER_ID }}
-        container-name: ${{ secrets.YC_CONTAINER_NAME }}-${{ matrix.service }}
+        container-name: ${{ secrets[matrix.container_secret] }}
         image-url: cr.yandex/${{ secrets.YC_REGISTRY_ID }}/online-teaching-${{ matrix.service }}:latest
         cores: 1
         memory: 512M
@@ -167,6 +171,7 @@ jobs:
         service-account-id: ${{ secrets.SA_ID }}
         # subnet-id: ${{ secrets.YC_SUBNET_ID }} # раскомментируйте, если нужен выход в интернет через VPC
         env: |
+          PORT=8080
           ENV=prod
           # Добавьте необходимые переменные окружения и секреты для сервисов
 
