@@ -204,3 +204,6 @@ asyncio_default_fixture_loop_scope = function
 **Статус:** ✅ Integration тесты работают для user-service  
 **Требуется:** Проверить остальные 7 сервисов
 
+
+
+
