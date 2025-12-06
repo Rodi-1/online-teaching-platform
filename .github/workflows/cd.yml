@@ -99,12 +99,84 @@ jobs:
         cache-to: type=gha,mode=max
 
   # ============================================
-  # JOB 3: Итоговое подтверждение (заглушка деплоя)
+  # JOB 3: Сборка и публикация в Yandex Container Registry
+  # ============================================
+  build-and-push-yc:
+    name: Build & Push to YCR - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: test-before-deploy
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - homework-service
+          - profile-service
+          - tests-service
+          - reports-service
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Auth to Yandex Container Registry
+    # YC_KEYS должен содержать JSON ключ сервисного аккаунта
+      uses: yc-actions/yc-cr-login@v1
+      with:
+        yc-sa-json-credentials: ${{ secrets.YC_KEYS }}
+
+    - name: Build and push image to YCR
+      uses: docker/build-push-action@v5
+      with:
+        context: ./services/${{ matrix.service }}
+        file: ./services/${{ matrix.service }}/Dockerfile
+        push: true
+        tags: |
+          cr.yandex/${{ secrets.YC_REGISTRY_ID }}/online-teaching-${{ matrix.service }}:latest
+          cr.yandex/${{ secrets.YC_REGISTRY_ID }}/online-teaching-${{ matrix.service }}:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # ============================================
+  # JOB 4: Деплой серверлесс-контейнеров в Yandex Cloud
+  # ============================================
+  deploy-sls-yc:
+    name: Deploy SLS Container - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: build-and-push-yc
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - homework-service
+          - profile-service
+          - tests-service
+          - reports-service
+    
+    steps:
+    - name: Deploy to Yandex Serverless Containers
+      uses: yc-actions/yc-sls-container-deploy@v2
+      with:
+        yc-sa-json-credentials: ${{ secrets.YC_KEYS }}
+        folder-id: ${{ secrets.FOLDER_ID }}
+        container-name: ${{ secrets.YC_CONTAINER_NAME }}-${{ matrix.service }}
+        image-url: cr.yandex/${{ secrets.YC_REGISTRY_ID }}/online-teaching-${{ matrix.service }}:latest
+        cores: 1
+        memory: 512M
+        concurrency: 8
+        service-account-id: ${{ secrets.SA_ID }}
+        # subnet-id: ${{ secrets.YC_SUBNET_ID }} # раскомментируйте, если нужен выход в интернет через VPC
+        env: |
+          ENV=prod
+          # Добавьте необходимые переменные окружения и секреты для сервисов
+
+  # ============================================
+  # JOB 5: Итоговое подтверждение (заглушка деплоя)
   # ============================================
   deploy-ready:
     name: Ready for Deployment
     runs-on: ubuntu-latest
-    needs: build-and-push
+    needs: [build-and-push, deploy-sls-yc]
     
     steps:
     - name: Deployment Summary
@@ -115,7 +187,8 @@ jobs:
         echo ""
         echo "✅ Unit-тесты: PASSED"
         echo "✅ Интеграционные тесты: PASSED"
-        echo "✅ Docker образы: BUILT & PUSHED to DockerHub"
+        echo "✅ DockerHub образы: BUILT & PUSHED"
+        echo "✅ Yandex Cloud SLS: DEPLOYED"
         echo ""
         echo "📦 Проект готов к локальному запуску:"
         echo "   docker compose up -d"
