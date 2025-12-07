@@ -60,7 +60,7 @@ app = FastAPI(
 )
 
 # Setup Prometheus metrics
-instrumentator = setup_metrics(
+setup_metrics(
     app=app,
     service_name="profile-service",
     service_version=settings.APP_VERSION

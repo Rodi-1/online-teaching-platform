@@ -52,7 +52,7 @@ app = FastAPI(
 )
 
 # Setup Prometheus metrics
-instrumentator = setup_metrics(
+setup_metrics(
     app=app,
     service_name="homework-service",
     service_version=settings.APP_VERSION

@@ -36,7 +36,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION, lifespan=lifespan)
 
 # Setup Prometheus metrics
-instrumentator = setup_metrics(
+setup_metrics(
     app=app,
     service_name="gradebook-service",
     service_version=settings.APP_VERSION
