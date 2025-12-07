@@ -4,49 +4,49 @@
 
 ### Запуск всех сервисов
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Остановка всех сервисов
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ### Остановка с удалением volumes (очистка БД)
 ```bash
-docker-compose down -v
+docker compose down -v
 ```
 
 ### Просмотр статуса сервисов
 ```bash
-docker-compose ps
+docker compose ps
 ```
 
 ### Просмотр логов всех сервисов
 ```bash
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ### Просмотр логов конкретного сервиса
 ```bash
-docker-compose logs -f user-service
-docker-compose logs -f postgres
+docker compose logs -f user-service
+docker compose logs -f postgres
 ```
 
 ### Пересборка образов
 ```bash
-docker-compose build
+docker compose build
 ```
 
 ### Пересборка и запуск
 ```bash
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 ### Выполнение команды в контейнере
 ```bash
-docker-compose exec user-service bash
-docker-compose exec postgres psql -U postgres
+docker compose exec user-service bash
+docker compose exec postgres psql -U postgres
 ```
 
 ## Локальная разработка User Service
@@ -120,7 +120,7 @@ black app/ && isort app/ && flake8 app/
 
 ### Подключение к PostgreSQL в Docker
 ```bash
-docker-compose exec postgres psql -U postgres -d online_teaching
+docker compose exec postgres psql -U postgres -d online_teaching
 ```
 
 ### Список баз данных
@@ -306,34 +306,34 @@ docker build -t user-service:latest services/user-service/
 ### Запуск в production режиме
 ```bash
 # Измените ENV в .env на "prod"
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+docker compose -f docker compose.yml -f docker compose.prod.yml up -d
 ```
 
 ### Backup базы данных
 ```bash
-docker-compose exec postgres pg_dump -U postgres online_teaching > backup.sql
+docker compose exec postgres pg_dump -U postgres online_teaching > backup.sql
 ```
 
 ### Восстановление базы данных
 ```bash
-docker-compose exec -T postgres psql -U postgres online_teaching < backup.sql
+docker compose exec -T postgres psql -U postgres online_teaching < backup.sql
 ```
 
 ## Troubleshooting
 
 ### Перезапуск конкретного сервиса
 ```bash
-docker-compose restart user-service
+docker compose restart user-service
 ```
 
 ### Пересборка одного сервиса
 ```bash
-docker-compose up -d --build user-service
+docker compose up -d --build user-service
 ```
 
 ### Проверка переменных окружения в контейнере
 ```bash
-docker-compose exec user-service env
+docker compose exec user-service env
 ```
 
 ### Удаление конкретного volume
@@ -351,20 +351,20 @@ docker system prune -a --volumes
 
 ```bash
 # Docker Compose shortcuts
-alias dcup='docker-compose up -d'
-alias dcdown='docker-compose down'
-alias dclogs='docker-compose logs -f'
-alias dcps='docker-compose ps'
-alias dcrestart='docker-compose restart'
+alias dcup='docker compose up -d'
+alias dcdown='docker compose down'
+alias dclogs='docker compose logs -f'
+alias dcps='docker compose ps'
+alias dcrestart='docker compose restart'
 
 # User Service shortcuts
-alias us-logs='docker-compose logs -f user-service'
+alias us-logs='docker compose logs -f user-service'
 alias us-test='cd services/user-service && pytest'
-alias us-shell='docker-compose exec user-service bash'
+alias us-shell='docker compose exec user-service bash'
 
 # Database shortcuts
-alias db-shell='docker-compose exec postgres psql -U postgres -d online_teaching'
-alias db-backup='docker-compose exec postgres pg_dump -U postgres online_teaching > backup_$(date +%Y%m%d_%H%M%S).sql'
+alias db-shell='docker compose exec postgres psql -U postgres -d online_teaching'
+alias db-backup='docker compose exec postgres pg_dump -U postgres online_teaching > backup_$(date +%Y%m%d_%H%M%S).sql'
 ```
 
 ## CI/CD команды (GitHub Actions)

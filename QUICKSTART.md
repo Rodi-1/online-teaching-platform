@@ -11,7 +11,7 @@
 Проверить установку:
 ```bash
 docker --version
-docker-compose --version
+docker compose --version
 git --version
 ```
 
@@ -45,7 +45,7 @@ JWT_SECRET=your-super-secret-jwt-key-change-in-production-123456789
 Запустите все сервисы с помощью Docker Compose:
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 Это запустит:
@@ -57,7 +57,7 @@ docker-compose up -d
 Проверьте, что все контейнеры запущены:
 
 ```bash
-docker-compose ps
+docker compose ps
 ```
 
 Вы должны увидеть:
@@ -116,36 +116,36 @@ curl -X GET "http://localhost:8001/api/users/me" \
 
 Просмотр логов всех сервисов:
 ```bash
-docker-compose logs -f
+docker compose logs -f
 ```
 
 Просмотр логов конкретного сервиса:
 ```bash
-docker-compose logs -f user-service
+docker compose logs -f user-service
 ```
 
 ## Шаг 8: Остановка сервисов
 
 Остановка без удаления данных:
 ```bash
-docker-compose stop
+docker compose stop
 ```
 
 Остановка с удалением контейнеров (данные в volumes сохранятся):
 ```bash
-docker-compose down
+docker compose down
 ```
 
 Полная очистка (включая volumes с данными БД):
 ```bash
-docker-compose down -v
+docker compose down -v
 ```
 
 ## Troubleshooting
 
 ### Порт уже занят
 
-Если порт 8001 или 5432 уже используется, измените в `docker-compose.yml`:
+Если порт 8001 или 5432 уже используется, измените в `docker compose.yml`:
 
 ```yaml
 services:
@@ -162,24 +162,24 @@ services:
 
 1. Проверьте логи:
 ```bash
-docker-compose logs user-service
+docker compose logs user-service
 ```
 
 2. Проверьте, что PostgreSQL запущен и здоров:
 ```bash
-docker-compose ps postgres
+docker compose ps postgres
 ```
 
 ### База данных не инициализировалась
 
 1. Остановите все:
 ```bash
-docker-compose down -v
+docker compose down -v
 ```
 
 2. Запустите заново:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ## Разработка

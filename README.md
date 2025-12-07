@@ -20,6 +20,11 @@
 ### Инфраструктура
 
 - **PostgreSQL** - Основная база данных
+- **Prometheus** - Сбор метрик
+- **Grafana** - Визуализация метрик и логов
+- **Loki** - Централизованное хранение логов
+- **Promtail** - Сборщик логов
+- **PostgreSQL Exporter** - Экспорт метрик БД
 - **Nginx** (опционально) - API Gateway / Reverse Proxy
 - **Docker** - Контейнеризация
 - **GitHub Actions** - CI/CD
@@ -71,21 +76,38 @@ cp .env.example .env
 
 3. Запустите все сервисы:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 4. Проверьте статус сервисов:
 ```bash
-docker-compose ps
+docker compose ps
 ```
 
 ### Доступ к сервисам
 
+#### Микросервисы
 - **User Service API**: http://localhost:8001
 - **User Service Docs**: http://localhost:8001/docs
 - **Homework Service API**: http://localhost:8002
 - **Homework Service Docs**: http://localhost:8002/docs
+- **Gradebook Service API**: http://localhost:8003
+- **Profile Service API**: http://localhost:8004
+- **Notifications Service API**: http://localhost:8005
+- **Tests Service API**: http://localhost:8006
+- **Schedule Service API**: http://localhost:8007
+- **Reports Service API**: http://localhost:8008
+
+#### Инфраструктура
 - **PostgreSQL**: localhost:5432
+- **Prometheus**: http://localhost:9090
+- **Grafana**: http://localhost:3000 (admin/admin)
+- **Loki**: http://localhost:3100 (internal)
+
+#### Мониторинг и логи
+Подробная документация:
+- [Мониторинг и метрики](MONITORING.md)
+- [Логирование](LOGGING.md)
 
 ## User Service - Микросервис пользователей
 
@@ -220,6 +242,15 @@ ENV=local  # local, dev, prod
 - **JWT** - Authentication
 - **bcrypt** - Password hashing
 
+### Мониторинг и логирование
+- **Prometheus** - Metrics collection
+- **Grafana** - Visualization
+- **Loki** - Log aggregation
+- **Promtail** - Log collection agent
+- **prometheus-client** - Python Prometheus client
+- **prometheus-fastapi-instrumentator** - FastAPI metrics
+- **python-json-logger** - Structured JSON logging
+
 ### DevOps
 - **Docker** - Containerization
 - **Docker Compose** - Multi-container orchestration
@@ -234,16 +265,18 @@ ENV=local  # local, dev, prod
 
 - [x] Микросервис пользователей
 - [x] Микросервис домашних заданий
-- [ ] Микросервис журнала оценок
-- [ ] Микросервис профилей
-- [ ] Микросервис уведомлений
-- [ ] Микросервис тестов
-- [ ] Микросервис расписания
-- [ ] Микросервис отчетов
+- [x] Микросервис журнала оценок
+- [x] Микросервис профилей
+- [x] Микросервис уведомлений
+- [x] Микросервис тестов
+- [x] Микросервис расписания
+- [x] Микросервис отчетов
+- [x] Мониторинг (Prometheus + Grafana)
+- [x] Централизованное логирование (Loki + Promtail)
 - [ ] API Gateway (Nginx или Kong)
 - [ ] Service mesh (опционально)
-- [ ] Мониторинг (Prometheus + Grafana)
-- [ ] Централизованное логирование (ELK Stack)
+- [ ] Distributed tracing (Jaeger)
+- [ ] Message broker (RabbitMQ/Kafka)
 
 ## Лицензия
 

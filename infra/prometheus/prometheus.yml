@@ -1,0 +1,107 @@
+# Prometheus Configuration for Online Teaching Platform
+
+global:
+  scrape_interval: 15s      # Set the scrape interval to every 15 seconds
+  evaluation_interval: 15s  # Evaluate rules every 15 seconds
+  external_labels:
+    cluster: 'online-teaching-platform'
+    environment: 'local'
+
+# Alertmanager configuration (optional - can be added later)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - 'alertmanager:9093'
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'
+# rule_files:
+#   - "alerts/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # User Service
+  - job_name: 'user-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['user-service:8000']
+        labels:
+          service: 'user-service'
+          app: 'online-teaching-platform'
+
+  # Homework Service
+  - job_name: 'homework-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['homework-service:8000']
+        labels:
+          service: 'homework-service'
+          app: 'online-teaching-platform'
+
+  # Gradebook Service
+  - job_name: 'gradebook-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['gradebook-service:8000']
+        labels:
+          service: 'gradebook-service'
+          app: 'online-teaching-platform'
+
+  # Profile Service
+  - job_name: 'profile-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['profile-service:8000']
+        labels:
+          service: 'profile-service'
+          app: 'online-teaching-platform'
+
+  # Notifications Service
+  - job_name: 'notifications-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['notifications-service:8000']
+        labels:
+          service: 'notifications-service'
+          app: 'online-teaching-platform'
+
+  # Tests Service
+  - job_name: 'tests-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['tests-service:8000']
+        labels:
+          service: 'tests-service'
+          app: 'online-teaching-platform'
+
+  # Schedule Service
+  - job_name: 'schedule-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['schedule-service:8000']
+        labels:
+          service: 'schedule-service'
+          app: 'online-teaching-platform'
+
+  # Reports Service
+  - job_name: 'reports-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['reports-service:8000']
+        labels:
+          service: 'reports-service'
+          app: 'online-teaching-platform'
+
+  # PostgreSQL Exporter
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: 'postgres'
+          app: 'online-teaching-platform'
+
