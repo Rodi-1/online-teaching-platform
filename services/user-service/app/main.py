@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from app.core.config import get_settings
 from app.core.logging_config import setup_logging, get_logger
@@ -53,14 +53,11 @@ app = FastAPI(
 )
 
 # Setup Prometheus metrics
-instrumentator = setup_metrics(
+setup_metrics(
     app=app,
     service_name="user-service",
     service_version=settings.APP_VERSION
 )
-
-# Expose metrics endpoint
-metrics_app = instrumentator.expose(app, endpoint="/metrics", include_in_schema=False)
 
 
 # Middleware for request logging and tracing

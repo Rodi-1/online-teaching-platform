@@ -4,7 +4,8 @@ This module provides centralized metrics configuration for the microservice.
 """
 from typing import Callable
 
-from prometheus_client import Counter, Histogram, Gauge, Info
+from fastapi import Response
+from prometheus_client import Counter, Histogram, Gauge, Info, REGISTRY, generate_latest
 from prometheus_fastapi_instrumentator import Instrumentator
 
 
@@ -46,7 +47,7 @@ business_operation_duration_seconds = Histogram(
 )
 
 
-def setup_metrics(app, service_name: str, service_version: str) -> Callable:
+def setup_metrics(app, service_name: str, service_version: str):
     """
     Setup Prometheus metrics for the FastAPI application.
     
@@ -54,9 +55,6 @@ def setup_metrics(app, service_name: str, service_version: str) -> Callable:
         app: FastAPI application instance
         service_name: Name of the microservice
         service_version: Version of the microservice
-    
-    Returns:
-        Instrumentator instance
     """
     # Set application info
     app_info.info({
@@ -64,22 +62,16 @@ def setup_metrics(app, service_name: str, service_version: str) -> Callable:
         'version': service_version
     })
     
-    # Create instrumentator
-    instrumentator = Instrumentator(
+    # Create and configure instrumentator with default metrics
+    Instrumentator(
         should_group_status_codes=False,
-        should_ignore_untemplated=True,
-        should_respect_env_var=True,
+        should_ignore_untemplated=False,
+        should_respect_env_var=False,
         should_instrument_requests_inprogress=True,
-        excluded_handlers=["/metrics", "/health", "/"],
-        env_var_name="ENABLE_METRICS",
+        excluded_handlers=[],
         inprogress_name="http_requests_in_progress",
         inprogress_labels=True
-    )
-    
-    # Instrument the app
-    instrumentator.instrument(app)
-    
-    return instrumentator
+    ).instrument(app).expose(app, include_in_schema=False, endpoint="/metrics")
 
 
 def track_db_query(service_name: str, operation: str, table: str):

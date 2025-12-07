@@ -60,9 +60,6 @@ instrumentator = setup_metrics(
     service_version=settings.APP_VERSION
 )
 
-# Expose metrics endpoint
-metrics_app = instrumentator.expose(app, endpoint="/metrics", include_in_schema=False)
-
 
 # Middleware for request logging and tracing
 @app.middleware("http")
