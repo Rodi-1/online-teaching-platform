@@ -68,7 +68,7 @@ def setup_metrics(app, service_name: str, service_version: str):
         should_ignore_untemplated=False,
         should_respect_env_var=False,
         should_instrument_requests_inprogress=True,
-        excluded_handlers=[],
+        excluded_handlers=["/metrics"],  # Exclude metrics endpoint to prevent self-instrumentation
         inprogress_name="http_requests_in_progress",
         inprogress_labels=True
     ).instrument(app).expose(app, include_in_schema=False, endpoint="/metrics")
